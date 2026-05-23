@@ -476,3 +476,18 @@ exports.saveAiDraft = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+exports.getExamPublicPreview = async (req, res, next) => {
+  try {
+    const { examId } = req.params;
+    const exam = await Exam.findById(examId)
+      .select('title subject description settings.duration settings.scheduledStart settings.scheduledEnd status');
+
+    if (!exam) throw ApiError.notFound('Exam not found');
+    if (exam.status !== 'published') {
+      throw ApiError.forbidden('Exam is not publicly accessible');
+    }
+
+    ApiResponse.success(res, { exam });
+  } catch (error) { next(error); }
+};
+

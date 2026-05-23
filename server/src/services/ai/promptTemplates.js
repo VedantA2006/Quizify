@@ -38,7 +38,10 @@ Respond with this exact JSON structure:
       "topic": "string",
       "learningOutcome": "string",
       "rubric": "string for subjective",
-      "modelAnswer": "string for subjective"
+      "modelAnswer": "string for subjective",
+      "starterCode": "string for coding, e.g. function skeleton",
+      "supportedLanguages": ["javascript", "python", "java"],
+      "testCases": [{"input": "string", "expectedOutput": "string", "isHidden": boolean, "description": "string"}]
     }]
   }]
 }`,
@@ -157,7 +160,10 @@ Respond with this exact JSON structure (Output the FULL updated exam JSON, do no
       "topic": "string",
       "learningOutcome": "string",
       "rubric": "string for subjective",
-      "modelAnswer": "string for subjective"
+      "modelAnswer": "string for subjective",
+      "starterCode": "string for coding, e.g. function skeleton",
+      "supportedLanguages": ["javascript", "python", "java"],
+      "testCases": [{"input": "string", "expectedOutput": "string", "isHidden": boolean, "description": "string"}]
     }]
   }]
 }`,

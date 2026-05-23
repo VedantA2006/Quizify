@@ -5,6 +5,7 @@ const { authorize } = require('../middleware/rbac');
 const ec = require('../controllers/examController');
 
 router.get('/code/:code', ec.getExamByCode);
+router.get('/preview/:examId', ec.getExamPublicPreview);
 
 router.use(auth);
 

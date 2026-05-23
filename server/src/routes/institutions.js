@@ -4,6 +4,9 @@ const { auth } = require('../middleware/auth');
 const { authorize } = require('../middleware/rbac');
 const ic = require('../controllers/institutionController');
 
+// PUBLIC CLASS INVITE ROUTE
+router.get('/classrooms/invite/:slug', ic.resolveClassroomInvite);
+
 router.use(auth);
 
 router.get('/mine', ic.getMyInstitution);
@@ -15,7 +18,16 @@ router.post('/departments', authorize('institution_owner', 'super_admin'), ic.cr
 router.put('/departments/:id', authorize('institution_owner', 'super_admin'), ic.updateDepartment);
 router.delete('/departments/:id', authorize('institution_owner', 'super_admin'), ic.deleteDepartment);
 
-// Classes
+// Classrooms Routing (Phase 2.3)
+router.get('/classrooms', ic.getClassrooms);
+router.post('/classrooms/join', ic.joinClassroomByCode);
+router.get('/classrooms/:id', ic.getClassroomDetail);
+router.post('/classrooms', authorize('institution_owner', 'faculty', 'super_admin'), ic.createClassroom);
+router.put('/classrooms/:id', authorize('institution_owner', 'faculty', 'super_admin'), ic.updateClassroom);
+router.post('/classrooms/:id/announcements', authorize('institution_owner', 'faculty', 'super_admin'), ic.addAnnouncement);
+router.delete('/classrooms/:id/students/:studentId', authorize('institution_owner', 'faculty', 'super_admin'), ic.removeStudentFromClass);
+
+// Legacy flat classes
 router.get('/classes', ic.getClasses);
 router.post('/classes', authorize('institution_owner', 'faculty', 'super_admin'), ic.createClass);
 router.put('/classes/:id', authorize('institution_owner', 'faculty', 'super_admin'), ic.updateClass);

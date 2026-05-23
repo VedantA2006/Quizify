@@ -2,7 +2,7 @@
  * Background Jobs Queue Service using Agenda with MongoDB storage
  */
 
-const Agenda = require('agenda');
+const { Agenda } = require('agenda');
 const env = require('../config/env');
 const ExamAttempt = require('../models/ExamAttempt');
 const Exam = require('../models/Exam');

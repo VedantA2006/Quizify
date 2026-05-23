@@ -19,6 +19,12 @@ const institutionSchema = new mongoose.Schema({
     allowPublicExams: { type: Boolean, default: true },
     requireApproval: { type: Boolean, default: false },
     defaultExamDuration: { type: Number, default: 60 },
+    allowStudentSelfEnrollment: { type: Boolean, default: true },
+    requireEmailDomainForStudents: { type: String, default: null },
+    defaultTimezone: { type: String, default: 'UTC' },
+    examReminderHours: { type: Number, default: 24 },
+    brandColor: { type: String, default: '#0ea5e9' },
+    logoUrl: { type: String, default: null },
   },
   plan: { type: String, enum: ['free', 'pro', 'enterprise'], default: 'free' },
   quotas: {

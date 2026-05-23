@@ -8,6 +8,7 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import JoinExam from './pages/public/JoinExam';
+import JoinClassroom from './pages/public/JoinClassroom';
 import NotFound from './pages/public/NotFound';
 
 // App pages
@@ -23,6 +24,9 @@ import EvaluationQueue from './pages/app/EvaluationQueue';
 import Analytics from './pages/app/Analytics';
 import Members from './pages/app/Members';
 import AppSettings from './pages/app/AppSettings';
+import Classrooms from './pages/app/Classrooms';
+import ClassroomDetail from './pages/app/ClassroomDetail';
+import MySchedule from './pages/app/MySchedule';
 
 // Student pages
 import ExamPlayer from './pages/student/ExamPlayer';
@@ -55,6 +59,8 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/join" element={<JoinExam />} />
       <Route path="/join/:code" element={<JoinExam />} />
+      <Route path="/e/:slug" element={<JoinExam />} />
+      <Route path="/join-class/:slug" element={<JoinClassroom />} />
 
       {/* Student exam flow */}
       <Route path="/exam/:attemptId" element={<ProtectedRoute><ExamPlayer /></ProtectedRoute>} />
@@ -73,6 +79,9 @@ export default function App() {
               <Route path="exams/create" element={<ExamCreate />} />
               <Route path="exams/:id" element={<ExamDetail />} />
               <Route path="resources" element={<ResourcesList />} />
+              <Route path="classrooms" element={<Classrooms />} />
+              <Route path="classrooms/:id" element={<ClassroomDetail />} />
+              <Route path="my-schedule" element={<MySchedule />} />
               <Route path="evaluations" element={<EvaluationQueue />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="institution/members" element={<Members />} />

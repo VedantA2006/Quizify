@@ -110,6 +110,14 @@ const normalizeQuestion = (q) => ({
   modelAnswer: q.modelAnswer || q.model_answer || '',
   learningOutcome: q.learningOutcome || q.learning_outcome || '',
   tags: q.tags || [],
+  starterCode: q.starterCode || q.starter_code || '',
+  supportedLanguages: q.supportedLanguages || q.supported_languages || ['javascript', 'python', 'java'],
+  testCases: (q.testCases || q.test_cases || []).map(tc => ({
+    input: tc.input || '',
+    expectedOutput: tc.expectedOutput || tc.expected_output || tc.expected || '',
+    isHidden: tc.isHidden || tc.is_hidden || false,
+    description: tc.description || '',
+  })),
 });
 
 const normalizeEnum = (value, allowed, defaultValue) => {

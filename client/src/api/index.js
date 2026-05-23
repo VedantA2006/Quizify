@@ -120,3 +120,36 @@ export const adminAPI = {
 export const searchAPI = {
   search: (q) => api.get('/search', { params: { q } }),
 };
+
+export const examPreviewAPI = {
+  getPublicPreview: (examId) => api.get(`/exams/preview/${examId}`),
+};
+
+export const shareLinkAPI = {
+  create: (data) => api.post('/share-links', data),
+  getForExam: (examId) => api.get(`/share-links?examId=${examId}`),
+  update: (slug, data) => api.put(`/share-links/${slug}`, data),
+  delete: (slug) => api.delete(`/share-links/${slug}`),
+  resolve: (slug) => api.get(`/share-links/resolve/${slug}`),
+  join: (slug, data) => api.post(`/share-links/resolve/${slug}/join`, data),
+  analytics: (slug) => api.get(`/share-links/${slug}/analytics`),
+};
+
+export const classroomAPI = {
+  getAll: () => api.get('/institutions/classrooms'),
+  getOne: (id) => api.get(`/institutions/classrooms/${id}`),
+  create: (data) => api.post('/institutions/classrooms', data),
+  update: (id, data) => api.put(`/institutions/classrooms/${id}`, data),
+  join: (data) => api.post('/institutions/classrooms/join', data),
+  resolveInvite: (slug) => api.get(`/institutions/classrooms/invite/${slug}`),
+  addAnnouncement: (id, data) => api.post(`/institutions/classrooms/${id}/announcements`, data),
+  removeStudent: (classId, studentId) => api.delete(`/institutions/classrooms/${classId}/students/${studentId}`),
+};
+
+export const scheduleAPI = {
+  getAll: (params) => api.get('/schedules', { params }),
+  getCalendar: (month) => api.get(`/schedules/calendar?month=${month}`),
+  getUpcoming: () => api.get('/schedules/upcoming'),
+  create: (data) => api.post('/schedules', data),
+  update: (id, data) => api.put(`/schedules/${id}`, data),
+};

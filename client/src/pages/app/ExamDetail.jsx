@@ -1,24 +1,33 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { examAPI } from '../../api';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { examAPI, shareLinkAPI } from '../../api';
 import { 
   Calendar, Clock, Users, Shield, 
   Settings, ChevronRight, Copy, Share2,
   AlertCircle, CheckCircle2, FileText, BarChart3,
-  History, Eye, ArrowLeftRight
+  History, Eye, ArrowLeftRight, CalendarRange
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import VersionDiff from '../../components/exams/VersionDiff';
+import ShareLinkManager from '../../components/exams/ShareLinkManager';
+import ScheduleModal from '../../components/schedule/ScheduleModal';
 
 export default function ExamDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [exam, setExam] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview'); // overview, questions, history
+  const [activeTab, setActiveTab] = useState('overview'); // overview, history
   const [selectedVersion, setSelectedVersion] = useState(null);
+
+  // Modal States
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [activeLinkCount, setActiveLinkCount] = useState(0);
 
   useEffect(() => {
     fetchExam();
+    fetchLinkCount();
   }, [id]);
 
   const fetchExam = async () => {
@@ -32,6 +41,15 @@ export default function ExamDetail() {
     }
   };
 
+  const fetchLinkCount = async () => {
+    try {
+      const res = await shareLinkAPI.getForExam(id);
+      setActiveLinkCount(res.data?.data?.links?.filter(l => l.isActive)?.length || 0);
+    } catch (err) {
+      console.error('Error fetching share links count:', err);
+    }
+  };
+
   const handlePublish = async () => {
     try {
       const res = await examAPI.publish(id);
@@ -42,10 +60,16 @@ export default function ExamDetail() {
     }
   };
 
-  if (loading) return <div className="animate-pulse space-y-8">
-    <div className="h-32 bg-slate-100 rounded-xl" />
-    <div className="grid grid-cols-3 gap-6"><div className="h-24 bg-slate-100 rounded-xl" /><div className="h-24 bg-slate-100 rounded-xl" /><div className="h-24 bg-slate-100 rounded-xl" /></div>
-  </div>;
+  if (loading) return (
+    <div className="animate-pulse space-y-8">
+      <div className="h-32 bg-slate-100 rounded-xl" />
+      <div className="grid grid-cols-3 gap-6">
+        <div className="h-24 bg-slate-100 rounded-xl" />
+        <div className="h-24 bg-slate-100 rounded-xl" />
+        <div className="h-24 bg-slate-100 rounded-xl" />
+      </div>
+    </div>
+  );
 
   if (!exam) return <div className="text-center py-20"><p className="text-slate-500">Exam not found</p></div>;
 
@@ -131,6 +155,7 @@ export default function ExamDetail() {
             </div>
 
             <div className="space-y-6">
+              {/* Access Code Card */}
               <div className="card p-6 bg-slate-900 text-white relative overflow-hidden">
                 <div className="relative z-10">
                   <h3 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">Exam Access Code</h3>
@@ -142,13 +167,51 @@ export default function ExamDetail() {
                   </div>
                 </div>
               </div>
+
+              {/* Share Links Count Card */}
+              <div className="card p-6 bg-white border border-slate-200">
+                <h3 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-3">Share Links</h3>
+                <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <span className="text-xs font-bold text-slate-700">{activeLinkCount} Active links</span>
+                  <button onClick={() => setShareModalOpen(true)} className="btn-secondary !py-1 !px-3 !text-xs font-bold">
+                    Manage Links
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
               <div className="card p-6">
                 <h3 className="font-bold text-slate-800 mb-4">Quick Actions</h3>
                 <div className="space-y-3">
-                  <button className="w-full text-left p-3 rounded-lg border border-slate-100 hover:border-primary-200 hover:bg-primary-50 transition-all flex items-center justify-between group">
+                  {/* Share Exam Action */}
+                  <button 
+                    onClick={() => setShareModalOpen(true)}
+                    className="w-full text-left p-3 rounded-lg border border-slate-100 hover:border-primary-200 hover:bg-primary-50 transition-all flex items-center justify-between group">
+                    <div className="flex items-center gap-3">
+                      <Share2 className="w-4 h-4 text-slate-400 group-hover:text-primary-600" />
+                      <span className="text-sm font-medium text-slate-600 group-hover:text-primary-700">Share Exam Links</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary-400" />
+                  </button>
+
+                  {/* View Analytics Action */}
+                  <button 
+                    onClick={() => navigate(`/app/analytics`)}
+                    className="w-full text-left p-3 rounded-lg border border-slate-100 hover:border-primary-200 hover:bg-primary-50 transition-all flex items-center justify-between group">
                     <div className="flex items-center gap-3">
                       <BarChart3 className="w-4 h-4 text-slate-400 group-hover:text-primary-600" />
-                      <span className="text-sm font-medium text-slate-600 group-hover:text-primary-700">Detailed Analytics</span>
+                      <span className="text-sm font-medium text-slate-600 group-hover:text-primary-700">View Analytics</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary-400" />
+                  </button>
+
+                  {/* Schedule to Class Action */}
+                  <button 
+                    onClick={() => setScheduleModalOpen(true)}
+                    className="w-full text-left p-3 rounded-lg border border-slate-100 hover:border-primary-200 hover:bg-primary-50 transition-all flex items-center justify-between group">
+                    <div className="flex items-center gap-3">
+                      <CalendarRange className="w-4 h-4 text-slate-400 group-hover:text-primary-600" />
+                      <span className="text-sm font-medium text-slate-600 group-hover:text-primary-700">Schedule to Class</span>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary-400" />
                   </button>
@@ -161,61 +224,77 @@ export default function ExamDetail() {
 
       {activeTab === 'history' && (
         <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-1 space-y-4">
-                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
-                    <History className="w-5 h-5 text-primary-600" /> Version History
-                </h2>
-                <div className="space-y-3">
-                    <div className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                        !selectedVersion ? 'border-primary-500 bg-primary-50' : 'border-slate-100 bg-white hover:border-slate-200'
-                    }`} onClick={() => setSelectedVersion(null)}>
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <p className="font-bold text-slate-900 text-sm">Current Version</p>
-                                <p className="text-[10px] text-slate-500 font-medium uppercase mt-0.5">Live Revision</p>
-                            </div>
-                            {!selectedVersion && <CheckCircle2 className="w-4 h-4 text-primary-600" />}
-                        </div>
-                    </div>
-                    {exam.versions?.slice().reverse().map((v, i) => (
-                        <div key={i} className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                            selectedVersion?._id === v._id ? 'border-primary-500 bg-primary-50' : 'border-slate-100 bg-white hover:border-slate-200'
-                        }`} onClick={() => setSelectedVersion(v)}>
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="font-bold text-slate-900 text-sm">Version {exam.versions.length - i}</p>
-                                    <p className="text-[10px] text-slate-500 font-medium uppercase mt-0.5">
-                                        {new Date(v.updatedAt).toLocaleString()}
-                                    </p>
-                                </div>
-                                {selectedVersion?._id === v._id && <CheckCircle2 className="w-4 h-4 text-primary-600" />}
-                            </div>
-                        </div>
-                    ))}
+          <div className="lg:col-span-1 space-y-4">
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+              <History className="w-5 h-5 text-primary-600" /> Version History
+            </h2>
+            <div className="space-y-3">
+              <div className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                !selectedVersion ? 'border-primary-500 bg-primary-50' : 'border-slate-100 bg-white hover:border-slate-200'
+              }`} onClick={() => setSelectedVersion(null)}>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">Current Version</p>
+                    <p className="text-[10px] text-slate-500 font-medium uppercase mt-0.5">Live Revision</p>
+                  </div>
+                  {!selectedVersion && <CheckCircle2 className="w-4 h-4 text-primary-600" />}
                 </div>
+              </div>
+              {exam.versions?.slice().reverse().map((v, i) => (
+                <div key={i} className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                  selectedVersion?._id === v._id ? 'border-primary-500 bg-primary-50' : 'border-slate-100 bg-white hover:border-slate-200'
+                }`} onClick={() => setSelectedVersion(v)}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-bold text-slate-900 text-sm">Version {exam.versions.length - i}</p>
+                      <p className="text-[10px] text-slate-500 font-medium uppercase mt-0.5">
+                        {new Date(v.updatedAt).toLocaleString()}
+                      </p>
+                    </div>
+                    {selectedVersion?._id === v._id && <CheckCircle2 className="w-4 h-4 text-primary-600" />}
+                  </div>
+                </div>
+              ))}
             </div>
+          </div>
 
-            <div className="lg:col-span-2 card p-6">
-                {selectedVersion ? (
-                    <div className="space-y-6">
-                        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                            <h2 className="font-bold text-slate-800 flex items-center gap-2">
-                                <ArrowLeftRight className="w-5 h-5 text-primary-600" /> Comparison View
-                            </h2>
-                            <button className="btn-secondary !py-1 !px-3 !text-xs" onClick={() => setSelectedVersion(null)}>Reset</button>
-                        </div>
-                        <VersionDiff oldVersion={selectedVersion} newVersion={exam} />
-                    </div>
-                ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-center py-20 px-10">
-                        <History className="w-12 h-12 text-slate-200 mb-4" />
-                        <h3 className="font-bold text-slate-800">Select a version to compare</h3>
-                        <p className="text-sm text-slate-500 mt-2">Pick an older version from the list on the left to see what changed in the current exam structure.</p>
-                    </div>
-                )}
-            </div>
+          <div className="lg:col-span-2 card p-6">
+            {selectedVersion ? (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                  <h2 className="font-bold text-slate-800 flex items-center gap-2">
+                    <ArrowLeftRight className="w-5 h-5 text-primary-600" /> Comparison View
+                  </h2>
+                  <button className="btn-secondary !py-1 !px-3 !text-xs" onClick={() => setSelectedVersion(null)}>Reset</button>
+                </div>
+                <VersionDiff oldVersion={selectedVersion} newVersion={exam} />
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center py-20 px-10">
+                <History className="w-12 h-12 text-slate-200 mb-4" />
+                <h3 className="font-bold text-slate-800">Select a version to compare</h3>
+                <p className="text-sm text-slate-500 mt-2">Pick an older version from the list on the left to see what changed in the current exam structure.</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
+
+      {/* Share Links Manager Modal */}
+      <ShareLinkManager 
+        examId={exam._id} 
+        examTitle={exam.title} 
+        isOpen={shareModalOpen} 
+        onClose={() => { setShareModalOpen(false); fetchLinkCount(); }} 
+      />
+
+      {/* Reusable Classroom Schedule Modal */}
+      <ScheduleModal 
+        examId={exam._id}
+        examTitle={exam.title}
+        isOpen={scheduleModalOpen}
+        onClose={() => setScheduleModalOpen(false)}
+      />
     </div>
   );
 }
@@ -230,4 +309,3 @@ function StatCard({ icon: Icon, label, value }) {
     </div>
   );
 }
-

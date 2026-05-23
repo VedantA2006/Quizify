@@ -77,6 +77,8 @@ app.use('/api/ai', require('./routes/ai'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/search', require('./routes/search'));
+app.use('/api/share-links', require('./routes/shareLinks'));
+app.use('/api/schedules', require('./routes/schedules'));
 
 // 404 handler for API routes
 app.use('/api/*', (req, res) => {

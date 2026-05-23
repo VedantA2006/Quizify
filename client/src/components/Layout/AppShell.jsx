@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import {
   LayoutDashboard, Brain, FileText, Users,
   BarChart3, Settings, Shield, LogOut, Menu, X, Bell,
-  GraduationCap, ClipboardCheck, ChevronDown, Sparkles
+  GraduationCap, ClipboardCheck, ChevronDown, Sparkles, Calendar
 } from 'lucide-react';
 
 const navItems = {
@@ -19,6 +19,8 @@ const navItems = {
     { label: 'Dashboard', icon: LayoutDashboard, path: '/app/dashboard' },
     { label: 'AI Studio', icon: Sparkles, path: '/app/ai-studio' },
     { label: 'Exams', icon: FileText, path: '/app/exams' },
+    { label: 'Classrooms', icon: GraduationCap, path: '/app/classrooms' },
+    { label: 'Schedules', icon: Calendar, path: '/app/my-schedule' },
     { label: 'Evaluation', icon: ClipboardCheck, path: '/app/evaluations' },
     { label: 'Members', icon: Users, path: '/app/institution/members' },
     { label: 'Settings', icon: Settings, path: '/app/settings' },
@@ -27,11 +29,15 @@ const navItems = {
     { label: 'Dashboard', icon: LayoutDashboard, path: '/app/dashboard' },
     { label: 'AI Studio', icon: Sparkles, path: '/app/ai-studio' },
     { label: 'Exams', icon: FileText, path: '/app/exams' },
+    { label: 'Classrooms', icon: GraduationCap, path: '/app/classrooms' },
+    { label: 'Schedules', icon: Calendar, path: '/app/my-schedule' },
     { label: 'Evaluation', icon: ClipboardCheck, path: '/app/evaluations' },
     { label: 'Analytics', icon: BarChart3, path: '/app/analytics' },
   ],
   student: [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/app/dashboard' },
+    { label: 'Classrooms', icon: GraduationCap, path: '/app/classrooms' },
+    { label: 'Schedules', icon: Calendar, path: '/app/my-schedule' },
     { label: 'My Exams', icon: FileText, path: '/app/my-attempts' },
     { label: 'Results', icon: BarChart3, path: '/app/my-results' },
   ],
