@@ -1,19 +1,48 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
+const morgan = require('morgan');
 const path = require('path');
+const fs = require('fs');
 const env = require('./config/env');
 const errorHandler = require('./middleware/errorHandler');
 const { generalLimiter } = require('./middleware/rateLimiter');
+const { auth } = require('./middleware/auth');
 
 const app = express();
 
-// Security
-app.use(helmet({ contentSecurityPolicy: false }));
+// Request Logging
+app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
+// Security & Cookie Parsing
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'", "*"],
+    }
+  }
+}));
+
+const allowedOrigins = env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) : [env.CLIENT_URL];
 app.use(cors({
-  origin: env.CLIENT_URL,
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
+
+app.use(cookieParser());
 
 // Rate limiting
 app.use(generalLimiter);
@@ -22,8 +51,14 @@ app.use(generalLimiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Static files
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Secure file downloads route
+app.get('/api/files/:filename', auth, (req, res) => {
+  const filePath = path.join(__dirname, '../uploads', req.params.filename);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ success: false, message: 'File not found' });
+  }
+  res.sendFile(filePath);
+});
 
 // Health check
 app.get('/api/health', (req, res) => {

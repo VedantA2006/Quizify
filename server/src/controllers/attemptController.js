@@ -6,6 +6,7 @@ const QuestionBankItem = require('../models/QuestionBankItem');
 const ApiError = require('../utils/ApiError');
 const ApiResponse = require('../utils/ApiResponse');
 const aiService = require('../services/ai/aiService');
+const { scheduleJob } = require('../jobs/queue');
 
 exports.startAttempt = async (req, res, next) => {
   try {
@@ -117,8 +118,9 @@ exports.saveAnswer = async (req, res, next) => {
 const sandboxService = require('../services/sandboxService');
 
 exports.submitAttempt = async (req, res, next) => {
+  let attempt;
   try {
-    const attempt = await ExamAttempt.findOne({
+    attempt = await ExamAttempt.findOne({
       _id: req.params.attemptId,
       student: req.user._id,
       status: 'in_progress',
@@ -126,6 +128,14 @@ exports.submitAttempt = async (req, res, next) => {
     if (!attempt) throw ApiError.notFound('Attempt not found or already submitted');
 
     const exam = await Exam.findById(attempt.exam).populate('sections.questions.question');
+    if (!exam) throw ApiError.notFound('Exam not found');
+
+    // Server-side timing check with 30s buffer
+    const startedAt = attempt.startedAt.getTime();
+    const duration = exam.settings?.duration || 0;
+    if (Date.now() > startedAt + duration * 60000 + 30000) {
+      throw ApiError.badRequest('Submission window expired');
+    }
 
     // Auto-evaluate MCQs and Coding questions
     let totalScore = 0;
@@ -133,21 +143,22 @@ exports.submitAttempt = async (req, res, next) => {
 
     const allQuestions = exam.sections.flatMap(s => s.questions);
 
-    for (const sq of allQuestions) {
+    const evaluationPromises = allQuestions.map(async (sq) => {
       const q = sq.question;
-      if (!q) continue;
-      maxScore += sq.marks || q.marks || 0;
+      if (!q) return { marks: 0, maxMarks: 0 };
+      const maxMarks = sq.marks || q.marks || 0;
 
       const answer = attempt.answers.find(a => a.question?.toString() === q._id.toString());
-      if (!answer) continue;
+      if (!answer) return { marks: 0, maxMarks };
 
       if (q.type === 'mcq') {
         const correctOption = q.options.find(o => o.isCorrect);
         if (correctOption && answer.selectedOption === correctOption.label) {
-          totalScore += sq.marks || q.marks || 0;
-        } else if (answer.selectedOption && exam.settings.negativeMarking) {
-          totalScore -= q.negativeMarks || 0;
+          return { marks: maxMarks, maxMarks };
+        } else if (answer.selectedOption && exam.settings?.negativeMarking && q.negativeMarks > 0) {
+          return { marks: -q.negativeMarks, maxMarks };
         }
+        return { marks: 0, maxMarks };
       } 
       else if (q.type === 'coding' && answer.codeAnswer) {
         try {
@@ -159,14 +170,25 @@ exports.submitAttempt = async (req, res, next) => {
           
           answer.codingResults = runResult.results;
           // Award marks based on percentage of passed test cases
-          const awarded = Math.round((runResult.passedCount / (runResult.totalCount || 1)) * (sq.marks || q.marks || 0));
-          totalScore += awarded;
+          const awarded = Math.round((runResult.passedCount / (runResult.totalCount || 1)) * maxMarks);
+          return { marks: awarded, maxMarks };
         } catch (err) {
           console.error('Coding evaluation failed:', err);
           answer.codingResults = [{ status: 'error', actualOutput: err.message }];
+          return { marks: 0, maxMarks };
         }
       }
-    }
+      return { marks: 0, maxMarks };
+    });
+
+    const results = await Promise.allSettled(evaluationPromises);
+
+    results.forEach(r => {
+      if (r.status === 'fulfilled') {
+        totalScore += r.value.marks;
+        maxScore += r.value.maxMarks;
+      }
+    });
 
     attempt.status = 'submitted';
     attempt.submittedAt = new Date();
@@ -178,7 +200,6 @@ exports.submitAttempt = async (req, res, next) => {
     // Crucial: mark modified if we changed subdocuments manually and save
     attempt.markModified('answers');
     await attempt.save();
-
 
     await AccessLog.create({
       userId: req.user._id,
@@ -196,7 +217,22 @@ exports.submitAttempt = async (req, res, next) => {
         submittedAt: attempt.submittedAt,
       },
     }, 'Exam submitted successfully');
-  } catch (error) { next(error); }
+  } catch (error) { 
+    next(error); 
+  } finally {
+    // Safety check: if standard flow failed mid-execution but we loaded the attempt,
+    // ensure it is marked as submitted and not stuck in 'in_progress'
+    if (attempt && attempt.status === 'in_progress') {
+      try {
+        attempt.status = 'submitted';
+        attempt.submittedAt = new Date();
+        attempt.timeSpent = Math.round((Date.now() - attempt.startedAt.getTime()) / 1000);
+        await attempt.save();
+      } catch (saveErr) {
+        console.error('Failed to auto-submit attempt in finally block:', saveErr);
+      }
+    }
+  }
 };
 
 exports.getMyAttempts = async (req, res, next) => {
@@ -271,7 +307,7 @@ exports.generateFeedback = async (req, res, next) => {
       _id: req.params.attemptId,
       student: req.user._id,
       status: 'submitted',
-    }).populate('exam').populate('answers.question');
+    });
 
     if (!attempt) throw ApiError.notFound('Attempt not found or not submitted');
 
@@ -279,29 +315,14 @@ exports.generateFeedback = async (req, res, next) => {
       return ApiResponse.success(res, { feedback: attempt.aiFeedback });
     }
 
-    const qaData = attempt.answers.map(a => `
-Q: ${a.question?.text || 'Unknown Question'}
-Student Answer: ${a.textAnswer || a.codeAnswer || a.selectedOption || 'No answer provided'}
-Correct Answer: ${a.question?.correctAnswer || 'N/A (subjective)'}
-Marks Awarded: ${a.markedForReview ? 'Pending' : 'Auto-graded'}
-`).join('\n');
+    // Schedule background job for feedback generation
+    await scheduleJob('generate-ai-feedback', { attemptId: attempt._id });
 
-    const params = {
-      examTitle: attempt.exam?.title,
-      subject: attempt.exam?.subject,
-      score: attempt.totalScore,
-      maxScore: attempt.maxScore,
-      percentage: attempt.percentage,
-      qaData,
-    };
-
-    const aiResult = await aiService.generateReview(params, req.user._id, req.user.institution);
-    if (!aiResult.success) throw new ApiError(500, 'AI Feedback generation failed: ' + aiResult.error);
-
-    attempt.aiFeedback = aiResult.data;
-    await attempt.save();
-
-    ApiResponse.success(res, { feedback: attempt.aiFeedback });
+    // Respond with 202 Accepted
+    res.status(202).json({
+      success: true,
+      message: 'Feedback generation queued. Check back in ~30 seconds.',
+    });
   } catch (error) { next(error); }
 };
 

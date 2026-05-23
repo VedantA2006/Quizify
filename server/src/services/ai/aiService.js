@@ -2,24 +2,88 @@ const { createProvider } = require('./providerFactory');
 const { getPrompt } = require('./promptTemplates');
 const { extractJSON, validateExamOutput, validateQuestionsOutput, normalizeExamOutput, normalizeQuestion } = require('./outputParser');
 const AiGenerationLog = require('../../models/AiGenerationLog');
+const env = require('../../config/env');
+
+function compressExam(exam, promptMessage = '') {
+  if (!exam) return null;
+
+  // Do NOT compress if prompt asks to edit or view a specific question
+  const questionNumberRegex = /(question|q|item|#)\s*\d+/i;
+  if (promptMessage && questionNumberRegex.test(promptMessage)) {
+    return exam;
+  }
+
+  // Count questions
+  const questionCount = exam.sections?.reduce((sum, s) => sum + (s.questions?.length || 0), 0) || 0;
+  if (questionCount > 3) {
+    const compressed = {
+      title: exam.title,
+      description: exam.description,
+      subject: exam.subject,
+      topics: exam.topics,
+      duration: exam.duration,
+      instructions: exam.instructions,
+      sections: exam.sections?.map(s => ({
+        title: s.title,
+        instructions: s.instructions,
+        questionCount: s.questions?.length || 0,
+        totalMarks: s.questions?.reduce((sum, q) => sum + (q.marks || 0), 0) || 0,
+        questions: s.questions?.map((q, idx) => ({
+          number: idx + 1,
+          type: q.type,
+          text: q.text,
+          marks: q.marks,
+          difficulty: q.difficulty,
+        }))
+      }))
+    };
+    return compressed;
+  }
+
+  return exam;
+}
 
 class AiService {
-  constructor() {
-    this.provider = createProvider('nvidia');
+  constructor(provider) {
+    this.provider = provider || createProvider(env.AI_PRIMARY_PROVIDER || 'nvidia');
+  }
+
+  /**
+   * Generates AI responses with active fallback provider mechanisms on failure
+   */
+  async generateWithFallback(messages, options = {}) {
+    let result = await this.provider.generate(messages, options);
+    if (result.success) return result;
+
+    const fallbackName = env.AI_FALLBACK_PROVIDER;
+    const primaryName = env.AI_PRIMARY_PROVIDER || 'nvidia';
+
+    if (fallbackName && fallbackName.toLowerCase() !== primaryName.toLowerCase()) {
+      console.warn(`[AiService] Primary provider '${primaryName}' failed: ${result.error}. Retrying with fallback provider '${fallbackName}'...`);
+      try {
+        const fallbackProvider = createProvider(fallbackName);
+        const fallbackResult = await fallbackProvider.generate(messages, options);
+        if (fallbackResult.success) {
+          return fallbackResult;
+        }
+        result.error = `Primary failed (${result.error}); Fallback failed (${fallbackResult.error})`;
+      } catch (err) {
+        console.error('[AiService] Failed to execute fallback AI provider:', err);
+      }
+    }
+    return result;
   }
 
   async generateExam(params, userId, institutionId) {
-    const { messages, version, templateName } = getPrompt('examGeneration', params);
-    const startTime = Date.now();
-
-    const result = await this.provider.generate(messages, {
-      temperature: 0.7,
-      maxTokens: 8192,
+    const promptDetails = getPrompt('examGeneration', params);
+    const result = await this.generateWithFallback(promptDetails.messages, {
+      temperature: promptDetails.temperature || 0.7,
+      maxTokens: promptDetails.maxTokens || 8192,
     });
 
     const log = await this._logGeneration({
-      userId, institutionId, result, messages,
-      generationType: 'exam', version, templateName,
+      userId, institutionId, result, messages: promptDetails.messages,
+      generationType: 'exam', version: promptDetails.version, templateName: promptDetails.templateName,
     });
 
     if (!result.success) {
@@ -34,7 +98,6 @@ class AiService {
         status: 'partial',
         error: validation.errors.join('; '),
       });
-      // Still return partial data if we have something
       if (parsed) {
         const normalized = normalizeExamOutput(parsed);
         return { success: true, data: normalized, warnings: validation.errors, logId: log._id };
@@ -49,16 +112,15 @@ class AiService {
   }
 
   async generateQuestions(params, userId, institutionId) {
-    const { messages, version, templateName } = getPrompt('questionGeneration', params);
-
-    const result = await this.provider.generate(messages, {
-      temperature: 0.7,
-      maxTokens: 4096,
+    const promptDetails = getPrompt('questionGeneration', params);
+    const result = await this.generateWithFallback(promptDetails.messages, {
+      temperature: promptDetails.temperature || 0.7,
+      maxTokens: promptDetails.maxTokens || 4096,
     });
 
     const log = await this._logGeneration({
-      userId, institutionId, result, messages,
-      generationType: 'questions', version, templateName,
+      userId, institutionId, result, messages: promptDetails.messages,
+      generationType: 'questions', version: promptDetails.version, templateName: promptDetails.templateName,
     });
 
     if (!result.success) {
@@ -79,12 +141,15 @@ class AiService {
   }
 
   async generateBlueprint(params, userId, institutionId) {
-    const { messages, version, templateName } = getPrompt('blueprintGeneration', params);
+    const promptDetails = getPrompt('blueprintGeneration', params);
+    const result = await this.generateWithFallback(promptDetails.messages, {
+      temperature: promptDetails.temperature || 0.5,
+      maxTokens: promptDetails.maxTokens || 4096,
+    });
 
-    const result = await this.provider.generate(messages, { temperature: 0.5, maxTokens: 4096 });
     const log = await this._logGeneration({
-      userId, institutionId, result, messages,
-      generationType: 'blueprint', version, templateName,
+      userId, institutionId, result, messages: promptDetails.messages,
+      generationType: 'blueprint', version: promptDetails.version, templateName: promptDetails.templateName,
     });
 
     if (!result.success) {
@@ -101,12 +166,21 @@ class AiService {
   }
 
   async copilotChat(params, userId, institutionId) {
-    const { messages, version, templateName } = getPrompt('copilotChat', params);
+    // Compress exam skeleton for token budget efficiency
+    const optimizedParams = { ...params };
+    if (params.currentExam) {
+      optimizedParams.currentExam = compressExam(params.currentExam, params.message);
+    }
 
-    const result = await this.provider.generate(messages, { temperature: 0.7, maxTokens: 4096 });
+    const promptDetails = getPrompt('copilotChat', optimizedParams);
+    const result = await this.generateWithFallback(promptDetails.messages, {
+      temperature: promptDetails.temperature || 0.7,
+      maxTokens: promptDetails.maxTokens || 4096,
+    });
+
     const log = await this._logGeneration({
-      userId, institutionId, result, messages,
-      generationType: 'copilot', version, templateName,
+      userId, institutionId, result, messages: promptDetails.messages,
+      generationType: 'copilot', version: promptDetails.version, templateName: promptDetails.templateName,
     });
 
     if (!result.success) {
@@ -122,12 +196,15 @@ class AiService {
   }
 
   async checkQuality(params, userId, institutionId) {
-    const { messages, version, templateName } = getPrompt('qualityCheck', params);
+    const promptDetails = getPrompt('qualityCheck', params);
+    const result = await this.generateWithFallback(promptDetails.messages, {
+      temperature: promptDetails.temperature || 0.3,
+      maxTokens: promptDetails.maxTokens || 2048,
+    });
 
-    const result = await this.provider.generate(messages, { temperature: 0.3, maxTokens: 2048 });
     const log = await this._logGeneration({
-      userId, institutionId, result, messages,
-      generationType: 'quality_check', version, templateName,
+      userId, institutionId, result, messages: promptDetails.messages,
+      generationType: 'quality_check', version: promptDetails.version, templateName: promptDetails.templateName,
     });
 
     if (!result.success) {
@@ -139,12 +216,15 @@ class AiService {
   }
 
   async generateRubric(params, userId, institutionId) {
-    const { messages, version, templateName } = getPrompt('rubricGeneration', params);
+    const promptDetails = getPrompt('rubricGeneration', params);
+    const result = await this.generateWithFallback(promptDetails.messages, {
+      temperature: promptDetails.temperature || 0.5,
+      maxTokens: promptDetails.maxTokens || 2048,
+    });
 
-    const result = await this.provider.generate(messages, { temperature: 0.5, maxTokens: 2048 });
     const log = await this._logGeneration({
-      userId, institutionId, result, messages,
-      generationType: 'rubric', version, templateName,
+      userId, institutionId, result, messages: promptDetails.messages,
+      generationType: 'rubric', version: promptDetails.version, templateName: promptDetails.templateName,
     });
 
     if (!result.success) {
@@ -156,12 +236,15 @@ class AiService {
   }
 
   async generateReview(params, userId, institutionId) {
-    const { messages, version, templateName } = getPrompt('attemptReview', params);
+    const promptDetails = getPrompt('attemptReview', params);
+    const result = await this.generateWithFallback(promptDetails.messages, {
+      temperature: promptDetails.temperature || 0.5,
+      maxTokens: promptDetails.maxTokens || 4096,
+    });
 
-    const result = await this.provider.generate(messages, { temperature: 0.5, maxTokens: 4096 });
     const log = await this._logGeneration({
-      userId, institutionId, result, messages,
-      generationType: 'review', version, templateName,
+      userId, institutionId, result, messages: promptDetails.messages,
+      generationType: 'review', version: promptDetails.version, templateName: promptDetails.templateName,
     });
 
     if (!result.success) {
@@ -177,13 +260,42 @@ class AiService {
     return { success: true, data: parsed, logId: log._id };
   }
 
-  async chatExamGeneration(params, userId, institutionId) {
-    const { messages, version, templateName } = getPrompt('interactiveExamCopilot', params);
+  async detectCheating(params, userId, institutionId) {
+    const promptDetails = getPrompt('cheatDetection', params);
+    const result = await this.generateWithFallback(promptDetails.messages, {
+      temperature: promptDetails.temperature || 0.2,
+      maxTokens: promptDetails.maxTokens || 2048,
+    });
 
-    const result = await this.provider.generate(messages, { temperature: 0.7, maxTokens: 8192 });
     const log = await this._logGeneration({
-      userId, institutionId, result, messages,
-      generationType: 'exam', version, templateName,
+      userId, institutionId, result, messages: promptDetails.messages,
+      generationType: 'cheat_detection', version: promptDetails.version, templateName: promptDetails.templateName,
+    });
+
+    if (!result.success) {
+      return { success: false, error: result.error, logId: log._id };
+    }
+
+    const parsed = extractJSON(result.content);
+    return { success: true, data: parsed || { suspicionScore: 0, reason: 'Evaluation offline', flag: false }, logId: log._id };
+  }
+
+  async chatExamGeneration(params, userId, institutionId) {
+    // Compress exam skeleton for token budget efficiency
+    const optimizedParams = { ...params };
+    if (params.currentExam) {
+      optimizedParams.currentExam = compressExam(params.currentExam, params.prompt);
+    }
+
+    const promptDetails = getPrompt('interactiveExamCopilot', optimizedParams);
+    const result = await this.generateWithFallback(promptDetails.messages, {
+      temperature: promptDetails.temperature || 0.7,
+      maxTokens: promptDetails.maxTokens || 8192,
+    });
+
+    const log = await this._logGeneration({
+      userId, institutionId, result, messages: promptDetails.messages,
+      generationType: 'exam', version: promptDetails.version, templateName: promptDetails.templateName,
     });
 
     if (!result.success) {

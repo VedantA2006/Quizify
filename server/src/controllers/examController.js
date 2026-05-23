@@ -5,6 +5,20 @@ const ApiError = require('../utils/ApiError');
 const ApiResponse = require('../utils/ApiResponse');
 const { buildPagination, generateCode } = require('../utils/helpers');
 const AiGenerationLog = require('../models/AiGenerationLog');
+const cacheService = require('../services/cacheService');
+
+const invalidateExamCaches = async (exam) => {
+  try {
+    if (exam) {
+      if (exam.accessCode) {
+        await cacheService.delete(`exam_code:${exam.accessCode}`);
+      }
+      await cacheService.delete(`published_exams_inst:${exam.institution}`);
+    }
+  } catch (err) {
+    console.error('[Cache] Cache invalidation failed:', err);
+  }
+};
 
 exports.getExams = async (req, res, next) => {
   try {
@@ -73,6 +87,7 @@ exports.updateExam = async (req, res, next) => {
 
     Object.assign(exam, req.body);
     await exam.save();
+    await invalidateExamCaches(exam);
 
     ApiResponse.success(res, { exam }, 'Exam updated');
   } catch (error) { next(error); }
@@ -80,10 +95,12 @@ exports.updateExam = async (req, res, next) => {
 
 exports.deleteExam = async (req, res, next) => {
   try {
-    await Exam.findOneAndUpdate(
+    const exam = await Exam.findOneAndUpdate(
       { _id: req.params.id, institution: req.user.institution },
-      { isActive: false }
+      { isActive: false },
+      { new: true }
     );
+    await invalidateExamCaches(exam);
     ApiResponse.success(res, null, 'Exam deleted');
   } catch (error) { next(error); }
 };
@@ -143,6 +160,7 @@ exports.publishExam = async (req, res, next) => {
     exam.publishedAt = new Date();
     exam.accessCode = exam.accessCode || generateCode(6);
     await exam.save();
+    await invalidateExamCaches(exam);
 
     ApiResponse.success(res, { exam }, 'Exam published');
   } catch (error) { next(error); }
@@ -173,6 +191,7 @@ exports.updateExamStatus = async (req, res, next) => {
     if (status === 'approved') exam.approvedBy = req.user._id;
     exam.status = status;
     await exam.save();
+    await invalidateExamCaches(exam);
 
     ApiResponse.success(res, { exam }, `Exam status updated to ${status}`);
   } catch (error) { next(error); }
@@ -180,6 +199,12 @@ exports.updateExamStatus = async (req, res, next) => {
 
 exports.getExamByCode = async (req, res, next) => {
   try {
+    const cacheKey = `exam_code:${req.params.code}`;
+    const cachedExam = await cacheService.get(cacheKey);
+    if (cachedExam) {
+      return ApiResponse.success(res, { exam: cachedExam });
+    }
+
     const exam = await Exam.findOne({
       accessCode: req.params.code,
       status: 'published',
@@ -187,6 +212,9 @@ exports.getExamByCode = async (req, res, next) => {
     }).select('title description subject settings.duration settings.instructions settings.scheduledStart settings.scheduledEnd');
 
     if (!exam) throw ApiError.notFound('Exam not found or not available');
+    
+    await cacheService.set(cacheKey, exam, 60); // Cache for 60 seconds
+
     ApiResponse.success(res, { exam });
   } catch (error) { next(error); }
 };

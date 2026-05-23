@@ -1,6 +1,8 @@
 const PROMPT_TEMPLATES = {
   examGeneration: {
     version: '1.0',
+    temperature: 0.7,
+    maxTokens: 8192,
     system: `You are an expert educational assessment designer. You create high-quality exams with well-structured questions.
 You MUST respond ONLY with valid JSON. No markdown, no explanations, no code fences. Just pure JSON.`,
     user: (params) => `Create an exam with the following requirements:
@@ -44,6 +46,8 @@ Respond with this exact JSON structure:
 
   questionGeneration: {
     version: '1.0',
+    temperature: 0.7,
+    maxTokens: 4096,
     system: `You are an expert question designer for educational assessments. Create precise, unambiguous questions.
 You MUST respond ONLY with valid JSON. No markdown, no explanations, no code fences. Just pure JSON.`,
     user: (params) => `Generate ${params.count || 5} ${params.type || 'mcq'} questions:
@@ -73,6 +77,8 @@ Respond with this exact JSON:
 
   blueprintGeneration: {
     version: '1.0',
+    temperature: 0.5,
+    maxTokens: 4096,
     system: `You are an expert exam blueprint designer. Create structured exam plans with balanced coverage.
 You MUST respond ONLY with valid JSON. No markdown, no explanations, no code fences. Just pure JSON.`,
     user: (params) => `Design an exam blueprint:
@@ -109,6 +115,8 @@ Respond with:
 
   copilotChat: {
     version: '1.0',
+    temperature: 0.7,
+    maxTokens: 4096,
     system: `You are an AI exam copilot assistant. Help faculty create and modify exams conversationally.
 When asked to modify an exam, respond with instructions and updated content.
 You MUST respond ONLY with valid JSON. No markdown, no explanations, no code fences. Just pure JSON.
@@ -118,6 +126,8 @@ Respond with: {"message": "string explanation", "action": "modify|suggest|info",
 
   interactiveExamCopilot: {
     version: '1.0',
+    temperature: 0.7,
+    maxTokens: 8192,
     system: `You are an expert exam generation AI. You create and modify highly structured exams based on user instructions.
 You MUST respond ONLY with valid JSON matching the exact provided schema. Do not include markdown or explanations.`,
     user: (params) => `${params.currentExam ? `Here is the current exam JSON:\n${JSON.stringify(params.currentExam)}\n\nModify the current exam based on this user request:` : `Create a completely new exam based on this user request:`}
@@ -154,7 +164,9 @@ Respond with this exact JSON structure (Output the FULL updated exam JSON, do no
   },
 
   attemptReview: {
-    version: '1.0',
+    version: '1.1',
+    temperature: 0.5,
+    maxTokens: 4096,
     system: `You are an expert educational AI tutor. Analyze the student's exam performance and provide constructive, personalized, and encouraging feedback.
 You MUST respond ONLY with valid JSON. No markdown, no explanations, no code fences. Just pure JSON.`,
     user: (params) => `Review this student's exam attempt:
@@ -170,12 +182,20 @@ Respond with exactly this JSON structure:
   "overall": "A 2-3 sentence overall assessment of their performance.",
   "strengths": ["string", "string"],
   "weaknesses": ["string", "string"],
-  "recommendations": ["string", "string", "string"]
+  "recommendations": ["string", "string", "string"],
+  "topicWiseBreakdown": [{
+    "topic": "string",
+    "score": number,
+    "maxScore": number,
+    "suggestion": "string"
+  }]
 }`,
   },
 
   qualityCheck: {
     version: '1.0',
+    temperature: 0.3,
+    maxTokens: 2048,
     system: `You are a question quality analyst. Evaluate questions for clarity, difficulty, and pedagogical value.
 You MUST respond ONLY with valid JSON. No markdown, no explanations, no code fences. Just pure JSON.`,
     user: (params) => `Evaluate this question:
@@ -197,6 +217,8 @@ Respond with:
 
   rubricGeneration: {
     version: '1.0',
+    temperature: 0.5,
+    maxTokens: 2048,
     system: `You are an expert in creating assessment rubrics. Create detailed, fair scoring rubrics.
 You MUST respond ONLY with valid JSON. No markdown, no explanations, no code fences. Just pure JSON.`,
     user: (params) => `Create a rubric for this question:
@@ -209,6 +231,25 @@ Respond with:
   "rubric": "detailed rubric text",
   "modelAnswer": "complete model answer",
   "scoringCriteria": [{"criterion": "string", "marks": number, "description": "string"}]
+}`,
+  },
+
+  cheatDetection: {
+    version: '1.0',
+    temperature: 0.2,
+    maxTokens: 2048,
+    system: `You are an expert academic integrity auditor. Analyze student submissions for potential cheating, similarity to reference answers, or external generation.
+You MUST respond ONLY with valid JSON. No markdown, no explanations, no code fences. Just pure JSON.`,
+    user: (params) => `Analyze the student answer for integrity:
+Question: ${params.questionText}
+Reference Answers: ${JSON.stringify(params.referenceAnswers)}
+Student's Answer: ${params.studentAnswer}
+
+Respond with exactly this JSON structure:
+{
+  "suspicionScore": number (0-100),
+  "reason": "Detailed justification of suspicion or verification of integrity",
+  "flag": boolean
 }`,
   },
 };
@@ -224,6 +265,8 @@ const getPrompt = (templateName, params) => {
     ],
     version: template.version,
     templateName,
+    temperature: template.temperature || undefined,
+    maxTokens: template.maxTokens || undefined,
   };
 };
 

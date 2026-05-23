@@ -1,5 +1,6 @@
 const { validationResult } = require('express-validator');
 const ApiError = require('../utils/ApiError');
+const Joi = require('joi');
 
 const validate = (validations) => {
   return async (req, res, next) => {
@@ -22,4 +23,19 @@ const validate = (validations) => {
   };
 };
 
-module.exports = { validate };
+const validateJoi = (schema) => {
+  return (req, res, next) => {
+    const { error, value } = schema.validate(req.body, { abortEarly: false, stripUnknown: true });
+    if (error) {
+      const details = error.details.map(d => ({
+        field: d.path.join('.'),
+        message: d.message,
+      }));
+      return next(ApiError.badRequest('Validation failed', details));
+    }
+    req.body = value; // Replace body with stripUnknown sanitized values
+    next();
+  };
+};
+
+module.exports = { validate, validateJoi };
