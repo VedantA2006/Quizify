@@ -35,7 +35,7 @@ export default function ShareLinkManager({ examId, examTitle, isOpen, onClose })
     enabled: isOpen && !!examId
   });
 
-  const links = data?.data?.data?.links || [];
+  const links = data?.data?.links || [];
 
   // Create Link Mutation
   const createMutation = useMutation({
@@ -74,7 +74,7 @@ export default function ShareLinkManager({ examId, examTitle, isOpen, onClose })
     enabled: !!showAnalyticsSlug
   });
 
-  const analytics = analyticsData?.data?.data || null;
+  const analytics = analyticsData?.data || null;
 
   if (!isOpen) return null;
 
