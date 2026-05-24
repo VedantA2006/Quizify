@@ -303,13 +303,29 @@ function sanitizeExamForStudent(exam) {
 
 exports.generateFeedback = async (req, res, next) => {
   try {
-    const attempt = await ExamAttempt.findOne({
-      _id: req.params.attemptId,
-      student: req.user._id,
-      status: 'submitted',
-    });
+    let attempt;
 
-    if (!attempt) throw ApiError.notFound('Attempt not found or not submitted');
+    if (req.user.role === 'student') {
+      attempt = await ExamAttempt.findOne({
+        _id: req.params.attemptId,
+        student: req.user._id,
+        status: 'submitted',
+      });
+    } else {
+      // Faculty, evaluator, super admin, or owner: verify the attempt belongs to their institution
+      attempt = await ExamAttempt.findById(req.params.attemptId).populate('exam');
+      if (attempt && attempt.exam) {
+        if (attempt.exam.institution?.toString() !== req.user.institution?.toString()) {
+          throw ApiError.forbidden('You do not have access to this attempt');
+        }
+      } else {
+        attempt = null;
+      }
+    }
+
+    if (!attempt || attempt.status !== 'submitted') {
+      throw ApiError.notFound('Attempt not found or not submitted');
+    }
 
     if (attempt.aiFeedback && attempt.aiFeedback.overall) {
       return ApiResponse.success(res, { feedback: attempt.aiFeedback });
