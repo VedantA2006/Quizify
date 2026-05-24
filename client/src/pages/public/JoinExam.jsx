@@ -32,9 +32,9 @@ export default function JoinExam() {
     setCheckingLink(true);
     try {
       const res = await shareLinkAPI.resolve(slug);
-      setResolvedLink(res.data.data.link);
+      setResolvedLink(res.data.link);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to resolve share link');
+      toast.error(err.message || 'Failed to resolve share link');
     } finally {
       setCheckingLink(false);
     }
