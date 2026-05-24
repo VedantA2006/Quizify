@@ -37,19 +37,42 @@ const generateRefreshToken = async (user, res) => {
 
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role, institutionName } = req.body;
 
     const existing = await User.findOne({ email });
     if (existing) throw ApiError.badRequest('Email already registered');
 
-    // Always create as 'student' to prevent privilege escalation
-    const user = await User.create({ name, email, password, role: 'student' });
+    // Parse and validate role
+    const userRole = role && ['institution_owner', 'faculty', 'student'].includes(role) ? role : 'student';
 
-    // For demo purposes, auto-assign to the first institution
-    const demoInst = await Institution.findOne({ name: /Demo|Quzify/i });
-    if (demoInst) {
-      user.institution = demoInst._id;
+    // Create the user
+    const user = await User.create({ name, email, password, role: userRole });
+
+    if (userRole === 'institution_owner' && institutionName) {
+      // Create new institution owned by this user
+      const slug = generateSlug(institutionName);
+      let uniqueSlug = slug;
+      let counter = 1;
+      while (await Institution.findOne({ slug: uniqueSlug })) {
+        uniqueSlug = `${slug}-${counter}`;
+        counter++;
+      }
+
+      const inst = await Institution.create({
+        name: institutionName,
+        slug: uniqueSlug,
+        owner: user._id,
+      });
+
+      user.institution = inst._id;
       await user.save();
+    } else {
+      // Auto-assign faculty/students to first demo institution for immediate usability
+      const demoInst = await Institution.findOne({ name: /Demo|Quzify/i }) || await Institution.findOne();
+      if (demoInst) {
+        user.institution = demoInst._id;
+        await user.save();
+      }
     }
 
     const token = generateToken(user);

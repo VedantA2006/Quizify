@@ -11,7 +11,8 @@ const registerSchema = Joi.object({
   name: Joi.string().trim().min(2).max(100).required(),
   email: Joi.string().email().required(),
   password: Joi.string().min(6).max(100).required(),
-  institutionName: Joi.string().trim().max(100).optional(),
+  institutionName: Joi.string().trim().max(100).optional().allow(''),
+  role: Joi.string().valid('student', 'faculty', 'institution_owner').optional(),
 });
 
 router.post('/register', authLimiter, validateJoi(registerSchema), authController.register);
