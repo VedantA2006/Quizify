@@ -29,24 +29,36 @@ app.use(helmet({
   }
 }));
 
-const allowedOrigins = env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) : [env.CLIENT_URL];
+const allowedOrigins = env.ALLOWED_ORIGINS 
+  ? env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) 
+  : [env.CLIENT_URL || ''];
+
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
     
-    // Strip trailing slashes to guarantee clean matching
-    const cleanOrigin = origin.replace(/\/$/, '');
-    const cleanAllowed = allowedOrigins.map(o => o.replace(/\/$/, ''));
-    
-    const isAllowed = cleanAllowed.includes(cleanOrigin) || 
-                      cleanAllowed.includes('*') ||
-                      cleanOrigin.endsWith('.vercel.app') || 
-                      cleanOrigin.startsWith('http://localhost');
+    try {
+      // Strip trailing slashes to guarantee clean matching
+      const cleanOrigin = origin.replace(/\/$/, '');
+      const cleanAllowed = allowedOrigins
+        .filter(o => typeof o === 'string' && o)
+        .map(o => o.replace(/\/$/, ''));
+      
+      const isAllowed = cleanAllowed.includes(cleanOrigin) || 
+                        cleanAllowed.includes('*') ||
+                        cleanOrigin.endsWith('.vercel.app') || 
+                        cleanOrigin.startsWith('http://localhost') ||
+                        cleanOrigin.includes('localhost');
 
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      callback(new Error(`Not allowed by CORS: ${origin}`));
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        console.warn(`CORS blocked for origin: ${origin}`);
+        callback(null, false); // Reject gracefully instead of throwing a server-level Error object
+      }
+    } catch (err) {
+      console.error('CORS processing error:', err);
+      callback(null, true); // Safe fallback to prevent server crash
     }
   },
   credentials: true,
