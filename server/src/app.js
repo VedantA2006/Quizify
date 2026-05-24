@@ -33,10 +33,20 @@ const allowedOrigins = env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(',').map(
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+    
+    // Strip trailing slashes to guarantee clean matching
+    const cleanOrigin = origin.replace(/\/$/, '');
+    const cleanAllowed = allowedOrigins.map(o => o.replace(/\/$/, ''));
+    
+    const isAllowed = cleanAllowed.includes(cleanOrigin) || 
+                      cleanAllowed.includes('*') ||
+                      cleanOrigin.endsWith('.vercel.app') || 
+                      cleanOrigin.startsWith('http://localhost');
+
+    if (isAllowed) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error(`Not allowed by CORS: ${origin}`));
     }
   },
   credentials: true,
