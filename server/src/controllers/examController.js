@@ -199,14 +199,15 @@ exports.updateExamStatus = async (req, res, next) => {
 
 exports.getExamByCode = async (req, res, next) => {
   try {
-    const cacheKey = `exam_code:${req.params.code}`;
+    const cleanCode = req.params.code ? req.params.code.replace(/\s+/g, '').toUpperCase() : '';
+    const cacheKey = `exam_code:${cleanCode}`;
     const cachedExam = await cacheService.get(cacheKey);
     if (cachedExam) {
       return ApiResponse.success(res, { exam: cachedExam });
     }
 
     const exam = await Exam.findOne({
-      accessCode: req.params.code,
+      accessCode: cleanCode,
       status: 'published',
       isActive: true,
     }).select('title description subject settings.duration settings.instructions settings.scheduledStart settings.scheduledEnd');

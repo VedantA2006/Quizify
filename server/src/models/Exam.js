@@ -65,4 +65,11 @@ examSchema.index({ institution: 1, status: 1 });
 examSchema.index({ accessCode: 1 });
 examSchema.index({ title: 'text', subject: 'text' });
 
+examSchema.pre('save', function (next) {
+  if (this.accessCode) {
+    this.accessCode = this.accessCode.toString().replace(/\s+/g, '').toUpperCase();
+  }
+  next();
+});
+
 module.exports = mongoose.model('Exam', examSchema);

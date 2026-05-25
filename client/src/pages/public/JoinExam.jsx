@@ -42,10 +42,11 @@ export default function JoinExam() {
 
   const handleLookup = async (e) => {
     e.preventDefault();
-    if (!code.trim()) return toast.error('Enter an exam code');
+    const cleanCode = code.replace(/\s+/g, '').toUpperCase();
+    if (!cleanCode) return toast.error('Enter an exam code');
     setLoading(true);
     try {
-      const res = await examAPI.getByCode(code.trim().toUpperCase());
+      const res = await examAPI.getByCode(cleanCode);
       setExam(res.data.exam);
     } catch {
       toast.error('Exam not found or not available');
@@ -55,8 +56,9 @@ export default function JoinExam() {
   };
 
   const handleJoin = async () => {
+    const cleanCode = code.replace(/\s+/g, '').toUpperCase();
     if (!user) {
-      const redirectPath = slug ? `/e/${slug}` : `/join/${code}`;
+      const redirectPath = slug ? `/e/${slug}` : `/join/${cleanCode}`;
       navigate(`/login?redirect=${encodeURIComponent(redirectPath)}`);
       return;
     }
@@ -70,7 +72,7 @@ export default function JoinExam() {
         navigate(`/exam/${res.data.attempt._id}`);
       } else {
         // Classic code join flow
-        const res = await attemptAPI.start({ examId: exam._id, accessCode: code });
+        const res = await attemptAPI.start({ examId: exam._id, accessCode: cleanCode });
         toast.success('Starting exam sandbox...');
         navigate(`/exam/${res.data.attempt._id}`);
       }

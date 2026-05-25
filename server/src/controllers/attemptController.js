@@ -20,7 +20,9 @@ exports.startAttempt = async (req, res, next) => {
 
     if (!exam) throw ApiError.notFound('Exam not found or not available');
 
-    if (exam.accessCode && exam.accessCode !== accessCode) {
+    const cleanAccessCode = accessCode ? accessCode.toString().replace(/\s+/g, '').toUpperCase() : '';
+    const cleanExamAccessCode = exam.accessCode ? exam.accessCode.toString().replace(/\s+/g, '').toUpperCase() : '';
+    if (cleanExamAccessCode && cleanExamAccessCode !== cleanAccessCode) {
       throw ApiError.forbidden('Invalid access code');
     }
 
