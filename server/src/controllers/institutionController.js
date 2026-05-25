@@ -194,10 +194,12 @@ exports.removeMember = async (req, res, next) => {
 exports.getClassrooms = async (req, res, next) => {
   try {
     const { role } = req.user;
-    const query = { institution: req.user.institution, isActive: true };
+    const query = { isActive: true };
 
     if (role === 'student') {
       query.students = req.user._id;
+    } else {
+      query.institution = req.user.institution;
     }
 
     const classrooms = await ClassBatch.find(query)
@@ -340,7 +342,7 @@ exports.joinClassroomByCode = async (req, res, next) => {
   try {
     const { inviteCode, inviteLink } = req.body;
     
-    let query = { institution: req.user.institution, isActive: true };
+    let query = { isActive: true };
     if (inviteCode) {
       query.inviteCode = inviteCode;
     } else if (inviteLink) {
@@ -362,11 +364,22 @@ exports.joinClassroomByCode = async (req, res, next) => {
 
     const alreadyEnrolled = classroom.students.some(s => s.toString() === req.user._id.toString());
     if (alreadyEnrolled) {
+      // Still update institution if needed
+      if (!req.user.institution || req.user.institution.toString() !== classroom.institution.toString()) {
+        req.user.institution = classroom.institution;
+        await req.user.save();
+      }
       return ApiResponse.success(res, { classroom }, 'You are already joined in this classroom');
     }
 
     classroom.students.push(req.user._id);
     await classroom.save();
+
+    // Update user's institution to the classroom's institution
+    if (!req.user.institution || req.user.institution.toString() !== classroom.institution.toString()) {
+      req.user.institution = classroom.institution;
+      await req.user.save();
+    }
 
     ApiResponse.success(res, { classroom }, 'Successfully joined classroom');
   } catch (error) { next(error); }
