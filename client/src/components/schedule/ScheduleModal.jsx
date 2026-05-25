@@ -34,8 +34,8 @@ export default function ScheduleModal({ examId, examTitle, isOpen, onClose }) {
     mutationFn: (payload) => scheduleAPI.create(payload),
     onSuccess: () => {
       toast.success('Exam scheduled to classroom successfully!');
-      queryClient.invalidateQueries(['shareLinks', examId]);
-      queryClient.invalidateQueries(['classSchedules']);
+      queryClient.invalidateQueries({ queryKey: ['shareLinks', examId] });
+      queryClient.invalidateQueries({ queryKey: ['classSchedules'] });
       resetForm();
       onClose();
     },

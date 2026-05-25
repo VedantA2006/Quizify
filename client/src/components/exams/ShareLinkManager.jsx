@@ -41,7 +41,7 @@ export default function ShareLinkManager({ examId, examTitle, isOpen, onClose })
   const createMutation = useMutation({
     mutationFn: (newLink) => shareLinkAPI.create(newLink),
     onSuccess: () => {
-      queryClient.invalidateQueries(['shareLinks', examId]);
+      queryClient.invalidateQueries({ queryKey: ['shareLinks', examId] });
       setIsCreating(false);
       resetForm();
     },
@@ -54,7 +54,7 @@ export default function ShareLinkManager({ examId, examTitle, isOpen, onClose })
   const updateMutation = useMutation({
     mutationFn: ({ slug, payload }) => shareLinkAPI.update(slug, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries(['shareLinks', examId]);
+      queryClient.invalidateQueries({ queryKey: ['shareLinks', examId] });
       setEditingSlug(null);
     }
   });
@@ -63,7 +63,7 @@ export default function ShareLinkManager({ examId, examTitle, isOpen, onClose })
   const deleteMutation = useMutation({
     mutationFn: (slug) => shareLinkAPI.delete(slug),
     onSuccess: () => {
-      queryClient.invalidateQueries(['shareLinks', examId]);
+      queryClient.invalidateQueries({ queryKey: ['shareLinks', examId] });
     }
   });
 

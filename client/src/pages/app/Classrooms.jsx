@@ -43,7 +43,7 @@ export default function Classrooms() {
     mutationFn: (payload) => classroomAPI.create(payload),
     onSuccess: () => {
       toast.success('Classroom batch created successfully!');
-      queryClient.invalidateQueries(['classrooms']);
+      queryClient.invalidateQueries({ queryKey: ['classrooms'] });
       setIsCreating(false);
       resetForm();
     },
@@ -57,7 +57,7 @@ export default function Classrooms() {
     mutationFn: (payload) => classroomAPI.join(payload),
     onSuccess: (res) => {
       toast.success(`Successfully enrolled in ${res.data.classroom?.name}!`);
-      queryClient.invalidateQueries(['classrooms']);
+      queryClient.invalidateQueries({ queryKey: ['classrooms'] });
       setInviteCodeInput('');
     },
     onError: (err) => {

@@ -37,7 +37,7 @@ export default function ClassroomDetail() {
     mutationFn: (payload) => classroomAPI.addAnnouncement(id, payload),
     onSuccess: () => {
       toast.success('Announcement posted successfully!');
-      queryClient.invalidateQueries(['classroomDetail', id]);
+      queryClient.invalidateQueries({ queryKey: ['classroomDetail', id] });
       setAnnouncementText('');
       setIsPinned(false);
     },
@@ -51,7 +51,7 @@ export default function ClassroomDetail() {
     mutationFn: (studentId) => classroomAPI.removeStudent(id, studentId),
     onSuccess: () => {
       toast.success('Student removed from classroom.');
-      queryClient.invalidateQueries(['classroomDetail', id]);
+      queryClient.invalidateQueries({ queryKey: ['classroomDetail', id] });
     },
     onError: (err) => {
       toast.error(err.response?.data?.message || 'Failed to remove student');
