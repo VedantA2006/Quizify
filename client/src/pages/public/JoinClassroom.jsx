@@ -24,7 +24,7 @@ export default function JoinClassroom() {
     setResolving(true);
     try {
       const res = await classroomAPI.resolveInvite(slug);
-      setClassInfo(res.data.data);
+      setClassInfo(res.data);
     } catch (err) {
       toast.error('Classroom invitation link is invalid or expired');
     } finally {

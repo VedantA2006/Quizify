@@ -36,7 +36,7 @@ export default function Classrooms() {
     queryFn: () => classroomAPI.getAll()
   });
 
-  const classrooms = data?.data?.data?.classrooms || [];
+  const classrooms = data?.data?.classrooms || [];
 
   // Create Mutation
   const createMutation = useMutation({

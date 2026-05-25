@@ -44,7 +44,7 @@ export default function ExamDetail() {
   const fetchLinkCount = async () => {
     try {
       const res = await shareLinkAPI.getForExam(id);
-      setActiveLinkCount(res.data?.data?.links?.filter(l => l.isActive)?.length || 0);
+      setActiveLinkCount(res.data?.links?.filter(l => l.isActive)?.length || 0);
     } catch (err) {
       console.error('Error fetching share links count:', err);
     }

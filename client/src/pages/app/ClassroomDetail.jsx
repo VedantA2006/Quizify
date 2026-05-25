@@ -29,7 +29,7 @@ export default function ClassroomDetail() {
     enabled: !!id
   });
 
-  const classroom = data?.data?.data?.classroom || null;
+  const classroom = data?.data?.classroom || null;
   const isFaculty = user?.role !== 'student';
 
   // Add Announcement Mutation

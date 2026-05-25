@@ -27,7 +27,7 @@ export default function ScheduleModal({ examId, examTitle, isOpen, onClose }) {
     enabled: isOpen
   });
 
-  const classrooms = classroomsData?.data?.data?.classrooms || [];
+  const classrooms = classroomsData?.data?.classrooms || [];
 
   // Schedule Mutation
   const scheduleMutation = useMutation({
