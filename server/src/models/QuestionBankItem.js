@@ -55,4 +55,35 @@ questionBankItemSchema.index({ institution: 1, subject: 1, topic: 1 });
 questionBankItemSchema.index({ institution: 1, type: 1, difficulty: 1 });
 questionBankItemSchema.index({ text: 'text' });
 
+questionBankItemSchema.pre('save', function (next) {
+  if (this.type === 'mcq' && this.correctAnswer && this.options && this.options.length > 0) {
+    const cleanAnswer = this.correctAnswer.toString().trim().toUpperCase();
+    let found = false;
+    this.options.forEach(opt => {
+      const cleanLabel = opt.label ? opt.label.toString().trim().toUpperCase() : '';
+      if (cleanLabel === cleanAnswer) {
+        opt.isCorrect = true;
+        found = true;
+      } else {
+        if (opt.isCorrect === undefined) {
+          opt.isCorrect = false;
+        }
+      }
+    });
+
+    if (!found) {
+      const hasAnyCorrect = this.options.some(o => o.isCorrect);
+      if (!hasAnyCorrect) {
+        this.options.forEach(opt => {
+          if (opt.text && opt.text.trim().toUpperCase() === cleanAnswer) {
+            opt.isCorrect = true;
+            found = true;
+          }
+        });
+      }
+    }
+  }
+  next();
+});
+
 module.exports = mongoose.model('QuestionBankItem', questionBankItemSchema);

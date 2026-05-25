@@ -62,9 +62,9 @@ Score Gained: ${ans.scoreAwarded || 0}`;
   const reviewResult = await aiService.generateReview({
     examTitle: exam.title,
     subject: exam.subject,
-    score: attempt.totalScore,
-    maxScore: attempt.maxScore,
-    percentage: attempt.percentage,
+    score: attempt.totalScore ?? 'N/A',
+    maxScore: attempt.maxScore ?? 'N/A',
+    percentage: attempt.percentage ?? 'N/A',
     qaData,
   }, attempt.student, exam.institution);
 

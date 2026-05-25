@@ -90,15 +90,31 @@ const validateQuestionsOutput = (data) => {
   return { valid: errors.length === 0, errors, data: { questions } };
 };
 
-const normalizeQuestion = (q) => ({
-  type: q.type || 'mcq',
-  text: (q.text || q.question || '').trim(),
-  options: (q.options || []).map((opt, idx) => ({
-    label: opt.label || String.fromCharCode(65 + idx),
-    text: (opt.text || opt.option || '').trim(),
-    isCorrect: opt.isCorrect || opt.is_correct || opt.correct || false,
-  })),
-  correctAnswer: q.correctAnswer || q.correct_answer || q.answer || '',
+const normalizeQuestion = (q) => {
+  const type = q.type || 'mcq';
+  const correctAnswer = q.correctAnswer || q.correct_answer || q.answer || '';
+  const options = (q.options || []).map((opt, idx) => {
+    const label = opt.label || String.fromCharCode(65 + idx);
+    let isCorrect = opt.isCorrect || opt.is_correct || opt.correct || false;
+    if (!isCorrect && correctAnswer) {
+      const cleanAnswer = correctAnswer.toString().trim().toUpperCase();
+      const cleanLabel = label.toString().trim().toUpperCase();
+      if (cleanAnswer === cleanLabel) {
+        isCorrect = true;
+      }
+    }
+    return {
+      label,
+      text: (opt.text || opt.option || '').trim(),
+      isCorrect,
+    };
+  });
+
+  return {
+    type,
+    text: (q.text || q.question || '').trim(),
+    options,
+    correctAnswer,
   explanation: q.explanation || '',
   difficulty: normalizeEnum(q.difficulty, ['easy', 'medium', 'hard', 'expert'], 'medium'),
   bloomLevel: normalizeEnum(q.bloomLevel || q.bloom_level, ['remember', 'understand', 'apply', 'analyze', 'evaluate', 'create'], 'understand'),
@@ -118,7 +134,8 @@ const normalizeQuestion = (q) => ({
     isHidden: tc.isHidden || tc.is_hidden || false,
     description: tc.description || '',
   })),
-});
+  };
+};
 
 const normalizeEnum = (value, allowed, defaultValue) => {
   if (!value) return defaultValue;

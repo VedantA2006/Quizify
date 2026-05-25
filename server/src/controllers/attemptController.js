@@ -153,7 +153,21 @@ exports.submitAttempt = async (req, res, next) => {
 
       if (q.type === 'mcq') {
         const correctOption = q.options.find(o => o.isCorrect);
-        if (correctOption && answer.selectedOption === correctOption.label) {
+        const correctLabel = correctOption?.label || q.correctAnswer;
+        
+        let isCorrect = false;
+        if (correctLabel && answer.selectedOption && answer.selectedOption.toString().toUpperCase() === correctLabel.toString().toUpperCase()) {
+          isCorrect = true;
+        } else if (correctOption && answer.selectedOption && answer.selectedOption.toString().toUpperCase() === correctOption.text.toString().toUpperCase()) {
+          isCorrect = true;
+        } else if (q.correctAnswer && answer.selectedOption && (
+          answer.selectedOption.toString().toUpperCase() === q.correctAnswer.toString().toUpperCase() ||
+          q.options.find(o => o.label === q.correctAnswer && o.text.toString().toUpperCase() === answer.selectedOption.toString().toUpperCase())
+        )) {
+          isCorrect = true;
+        }
+
+        if (isCorrect) {
           return { marks: maxMarks, maxMarks };
         } else if (answer.selectedOption && exam.settings?.negativeMarking && q.negativeMarks > 0) {
           return { marks: -q.negativeMarks, maxMarks };
@@ -190,11 +204,21 @@ exports.submitAttempt = async (req, res, next) => {
       }
     });
 
+    const hasSubjective = allQuestions.some(sq => sq.question?.type === 'subjective');
+
     attempt.status = 'submitted';
     attempt.submittedAt = new Date();
-    attempt.totalScore = totalScore;
-    attempt.maxScore = maxScore;
-    attempt.percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+    
+    if (hasSubjective) {
+      attempt.totalScore = null;
+      attempt.maxScore = exam.settings?.totalMarks || maxScore;
+      attempt.percentage = null;
+    } else {
+      attempt.totalScore = totalScore;
+      attempt.maxScore = maxScore;
+      attempt.percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+    }
+    
     attempt.timeSpent = Math.round((Date.now() - attempt.startedAt.getTime()) / 1000);
     
     // Crucial: mark modified if we changed subdocuments manually and save

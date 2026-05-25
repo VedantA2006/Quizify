@@ -52,8 +52,8 @@ export default function MyAttempts() {
                   <h3 className="font-semibold text-sm">{a.exam?.title || 'Exam'}</h3>
                   <p className="text-xs text-surface-400">{a.exam?.subject}</p>
                 </div>
-                <span className={`badge ${a.status === 'submitted' ? 'badge-success' : a.status === 'in_progress' ? 'badge-warning' : 'badge-neutral'}`}>
-                  {a.status === 'in_progress' ? 'In Progress' : a.status}
+                <span className={`badge ${a.status === 'submitted' ? (a.percentage === null ? 'badge-warning' : 'badge-success') : a.status === 'in_progress' ? 'badge-warning' : 'badge-neutral'}`}>
+                  {a.status === 'in_progress' ? 'In Progress' : (a.status === 'submitted' && a.percentage === null ? 'Pending Grading' : a.status)}
                 </span>
               </div>
 
@@ -87,7 +87,7 @@ export default function MyAttempts() {
                 <p className="text-xs text-surface-400">
                   {a.submittedAt ? `Submitted: ${new Date(a.submittedAt).toLocaleDateString()}` : `Started: ${new Date(a.startedAt || a.createdAt).toLocaleDateString()}`}
                 </p>
-                {a.status === 'submitted' && (
+                {a.status === 'submitted' && a.percentage !== null && (
                   <button onClick={() => handleGetFeedback(a._id)} className="btn-secondary text-xs !py-1 !px-2 flex items-center gap-1 bg-primary-50 text-primary-700 hover:bg-primary-100 border-primary-200">
                     <Sparkles className="w-3 h-3" /> AI Review
                   </button>
