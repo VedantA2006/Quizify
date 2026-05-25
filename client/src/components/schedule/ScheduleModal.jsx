@@ -15,6 +15,11 @@ export default function ScheduleModal({ examId, examTitle, isOpen, onClose }) {
   const [notes, setNotes] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Inline Classroom Creation states
+  const [showCreateClassroom, setShowCreateClassroom] = useState(false);
+  const [newClassName, setNewClassName] = useState('');
+  const [newClassSubject, setNewClassSubject] = useState('');
+
   // Fetch faculty classrooms
   const { data: classroomsData, isLoading } = useQuery({
     queryKey: ['myClassrooms'],
@@ -39,6 +44,37 @@ export default function ScheduleModal({ examId, examTitle, isOpen, onClose }) {
     }
   });
 
+  // Create Classroom Mutation
+  const createClassroomMutation = useMutation({
+    mutationFn: (payload) => classroomAPI.create(payload),
+    onSuccess: (res) => {
+      toast.success('Classroom created successfully!');
+      queryClient.invalidateQueries({ queryKey: ['myClassrooms'] });
+      queryClient.invalidateQueries({ queryKey: ['classrooms'] });
+      const createdClassId = res.data?.data?.classroom?._id || res.data?.classroom?._id;
+      if (createdClassId) {
+        setClassId(createdClassId);
+      }
+      setShowCreateClassroom(false);
+      setNewClassName('');
+      setNewClassSubject('');
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Failed to create classroom');
+    }
+  });
+
+  const handleCreateClassroom = (e) => {
+    e.preventDefault();
+    if (!newClassName.trim()) return toast.error('Classroom name is required');
+    createClassroomMutation.mutate({
+      name: newClassName.trim(),
+      subject: newClassSubject.trim(),
+      color: '#4f46e5',
+      coverEmoji: '📚'
+    });
+  };
+
   const resetForm = () => {
     setClassId('');
     setScheduledStart('');
@@ -47,6 +83,9 @@ export default function ScheduleModal({ examId, examTitle, isOpen, onClose }) {
     setLateSubmissionWindow('30');
     setNotes('');
     setErrorMsg('');
+    setShowCreateClassroom(false);
+    setNewClassName('');
+    setNewClassSubject('');
   };
 
   const handleSubmit = (e) => {
@@ -108,27 +147,86 @@ export default function ScheduleModal({ examId, examTitle, isOpen, onClose }) {
           )}
 
           {/* Target Classroom */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Select Classroom</label>
-            <select
-              value={classId}
-              onChange={(e) => setClassId(e.target.value)}
-              required
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white"
-            >
-              <option value="">-- Choose Classroom Batch --</option>
-              {isLoading ? (
-                <option disabled>Loading batches...</option>
-              ) : classrooms.length === 0 ? (
-                <option disabled>No active classrooms found. Create one first!</option>
-              ) : (
-                classrooms.map(c => (
-                  <option key={c._id} value={c._id}>
-                    {c.coverEmoji || '📚'} {c.name} ({c.subject || 'Class'})
-                  </option>
-                ))
-              )}
-            </select>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                {showCreateClassroom ? 'New Classroom Details' : 'Select Classroom'}
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowCreateClassroom(!showCreateClassroom)}
+                className="text-xs text-primary-600 hover:text-primary-700 font-bold focus:outline-none"
+              >
+                {showCreateClassroom ? 'Back to Select' : 'Or Create Classroom'}
+              </button>
+            </div>
+
+            {showCreateClassroom ? (
+              <div className="p-4 border border-slate-200/80 rounded-xl bg-slate-50/50 space-y-3 animate-in fade-in duration-200">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Classroom Name *</label>
+                  <input
+                    type="text"
+                    value={newClassName}
+                    onChange={(e) => setNewClassName(e.target.value)}
+                    placeholder="e.g. CS - Section A"
+                    className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white"
+                    required={showCreateClassroom}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Subject / Course Code</label>
+                  <input
+                    type="text"
+                    value={newClassSubject}
+                    onChange={(e) => setNewClassSubject(e.target.value)}
+                    placeholder="e.g. CS-301"
+                    className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white"
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateClassroom(false);
+                      setNewClassName('');
+                      setNewClassSubject('');
+                    }}
+                    className="px-3 py-1.5 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500 hover:bg-white"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={createClassroomMutation.isPending}
+                    onClick={handleCreateClassroom}
+                    className="px-3 py-1.5 bg-primary-600 hover:bg-primary-500 text-white rounded-lg text-[10px] font-extrabold shadow-sm disabled:bg-slate-200"
+                  >
+                    {createClassroomMutation.isPending ? 'Creating...' : 'Create & Select'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <select
+                value={classId}
+                onChange={(e) => setClassId(e.target.value)}
+                required={!showCreateClassroom}
+                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white"
+              >
+                <option value="">-- Choose Classroom Batch --</option>
+                {isLoading ? (
+                  <option disabled>Loading batches...</option>
+                ) : classrooms.length === 0 ? (
+                  <option disabled>No active classrooms found. Create one first!</option>
+                ) : (
+                  classrooms.map(c => (
+                    <option key={c._id} value={c._id}>
+                      {c.coverEmoji || '📚'} {c.name} ({c.subject || 'Class'})
+                    </option>
+                  ))
+                )}
+              </select>
+            )}
           </div>
 
           {/* Time range */}
