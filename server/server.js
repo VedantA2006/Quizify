@@ -20,7 +20,7 @@ const start = async () => {
   app.listen(env.PORT, () => {
     console.log(`
 ╔═══════════════════════════════════════════╗
-║           Quzify API Server               ║
+║          Quizify API Server               ║
 ║                                           ║
 ║   Port:        ${env.PORT}                     ║
 ║   Environment: ${env.NODE_ENV.padEnd(24)}║

@@ -68,7 +68,7 @@ exports.register = async (req, res, next) => {
       await user.save();
     } else {
       // Auto-assign faculty/students to first demo institution for immediate usability
-      const demoInst = await Institution.findOne({ name: /Demo|Quzify/i }) || await Institution.findOne();
+      const demoInst = await Institution.findOne({ name: /Demo|Quzify|Quizify/i }) || await Institution.findOne();
       if (demoInst) {
         user.institution = demoInst._id;
         await user.save();

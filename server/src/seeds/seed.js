@@ -37,11 +37,11 @@ const seed = async () => {
     // Create super admin
     const superAdmin = await User.create({
       name: 'Super Admin',
-      email: 'admin@quzify.com',
+      email: 'admin@quizify.com',
       password: 'admin123',
       role: 'super_admin',
     });
-    console.log('Created super admin: admin@quzify.com / admin123');
+    console.log('Created super admin: admin@quizify.com / admin123');
 
     // Create institution
     const institution = await Institution.create({
@@ -49,13 +49,13 @@ const seed = async () => {
       slug: 'demo-university',
       owner: superAdmin._id,
       type: 'college',
-      description: 'A demo institution for testing Quzify platform',
+      description: 'A demo institution for testing Quizify platform',
     });
 
     // Create institution owner
     const owner = await User.create({
       name: 'Dr. Shah',
-      email: 'owner@quzify.com',
+      email: 'owner@quizify.com',
       password: 'owner123',
       role: 'institution_owner',
       institution: institution._id,
@@ -73,7 +73,7 @@ const seed = async () => {
     // Create faculty
     const faculty = await User.create({
       name: 'Prof. Sharma',
-      email: 'faculty@quzify.com',
+      email: 'faculty@quizify.com',
       password: 'faculty123',
       role: 'faculty',
       institution: institution._id,
@@ -83,7 +83,7 @@ const seed = async () => {
     // Create evaluator
     const evaluator = await User.create({
       name: 'TA Kumar',
-      email: 'evaluator@quzify.com',
+      email: 'evaluator@quizify.com',
       password: 'eval123',
       role: 'evaluator',
       institution: institution._id,
@@ -93,7 +93,7 @@ const seed = async () => {
     // Create student
     const student = await User.create({
       name: 'Rahul Patel',
-      email: 'student@quzify.com',
+      email: 'student@quizify.com',
       password: 'student123',
       role: 'student',
       institution: institution._id,
@@ -280,11 +280,11 @@ const seed = async () => {
 ║                                               ║
 ║  Demo Credentials:                            ║
 ║  ─────────────────────                        ║
-║  Super Admin:    admin@quzify.com / admin123  ║
-║  Inst. Owner:    owner@quzify.com / owner123  ║
-║  Faculty:        faculty@quzify.com / faculty123 ║
-║  Evaluator:      evaluator@quzify.com / eval123 ║
-║  Student:        student@quzify.com / student123 ║
+║  Super Admin:    admin@quizify.com / admin123  ║
+║  Inst. Owner:    owner@quizify.com / owner123  ║
+║  Faculty:        faculty@quizify.com / faculty123 ║
+║  Evaluator:      evaluator@quizify.com / eval123 ║
+║  Student:        student@quizify.com / student123 ║
 ║                                               ║
 ║  Demo Exam Code: DEMO24                       ║
 ║                                               ║

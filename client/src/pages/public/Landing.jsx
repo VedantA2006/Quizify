@@ -33,7 +33,7 @@ export default function Landing() {
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center">
               <Brain className="w-5 h-5 text-white" />
             </div>
-            <span className="font-display font-bold text-xl">Quzify</span>
+            <span className="font-display font-bold text-xl">Quizify</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm text-surface-400 hover:text-white transition">Features</a>
@@ -175,9 +175,9 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Brain className="w-5 h-5 text-primary-400" />
-            <span className="font-display font-bold">Quzify</span>
+            <span className="font-display font-bold">Quizify</span>
           </div>
-          <p className="text-sm text-surface-500">© 2024 Quzify. AI-Powered Assessment Platform. Free forever.</p>
+          <p className="text-sm text-surface-500">© 2024 Quizify. AI-Powered Assessment Platform. Free forever.</p>
         </div>
       </footer>
     </div>

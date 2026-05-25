@@ -9,7 +9,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('quzify_token');
+  const token = localStorage.getItem('quizify_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -21,8 +21,8 @@ api.interceptors.response.use(
   (error) => {
     const message = error.response?.data?.message || error.message || 'Something went wrong';
     if (error.response?.status === 401) {
-      localStorage.removeItem('quzify_token');
-      localStorage.removeItem('quzify_user');
+      localStorage.removeItem('quizify_token');
+      localStorage.removeItem('quizify_user');
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }

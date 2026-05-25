@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import {
   LayoutDashboard, Brain, FileText, Users,
   BarChart3, Settings, Shield, LogOut, Menu, X, Bell,
-  GraduationCap, ClipboardCheck, ChevronDown, Sparkles, Calendar
+  GraduationCap, ClipboardCheck, ChevronDown, Sparkles, Calendar, ShieldAlert
 } from 'lucide-react';
 
 const navItems = {
@@ -67,7 +67,7 @@ export default function AppShell({ children }) {
           <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/20">
             <Brain className="w-5 h-5 text-white" />
           </div>
-          <span className="font-bold text-xl text-white tracking-tight">Quzify</span>
+          <span className="font-bold text-xl text-white tracking-tight">Quizify</span>
           <button className="lg:hidden ml-auto p-1 text-slate-400 hover:text-white" onClick={() => setSidebarOpen(false)}>
             <X className="w-5 h-5" />
           </button>
@@ -112,7 +112,7 @@ export default function AppShell({ children }) {
 
           <div className="flex-1 flex items-center gap-4">
             <h1 className="text-lg font-semibold text-slate-900 truncate">
-              {items.find(i => location.pathname.startsWith(i.path))?.label || 'Quzify'}
+              {items.find(i => location.pathname.startsWith(i.path))?.label || 'Quizify'}
             </h1>
             {!user?.institution && user?.role !== 'super_admin' && (
               <span className="hidden md:flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold rounded-full border border-amber-200 uppercase tracking-wider">

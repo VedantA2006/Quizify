@@ -32,7 +32,7 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary-600 shadow-xl shadow-primary-500/20 mb-6">
             <Brain className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Quzify Login</h1>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Quizify Login</h1>
           <p className="mt-2 text-slate-500 font-medium">Dimensionally intelligent assessments</p>
         </div>
 
@@ -86,13 +86,13 @@ export default function Login() {
               <ShieldCheck className="w-4 h-4" /> Secure Enterprise Access
             </div>
             <p className="text-center text-sm text-slate-500">
-              New to Quzify? <Link to="/register" className="font-bold text-primary-600 hover:text-primary-700">Request Access</Link>
+              New to Quizify? <Link to="/register" className="font-bold text-primary-600 hover:text-primary-700">Request Access</Link>
             </p>
           </div>
         </div>
 
         <p className="text-center text-xs text-slate-400 px-8">
-          By logging in, you agree to Quzify's <span className="underline cursor-pointer">Terms</span> and <span className="underline cursor-pointer">Privacy Policy</span>.
+          By logging in, you agree to Quizify's <span className="underline cursor-pointer">Terms</span> and <span className="underline cursor-pointer">Privacy Policy</span>.
         </p>
       </div>
     </div>

@@ -6,7 +6,7 @@ async function runTest() {
   console.log('🚀 Starting Integration Test...');
   
   const timestamp = Date.now();
-  const testEmail = `test_${timestamp}@quzify.com`;
+  const testEmail = `test_${timestamp}@quizify.com`;
 
   try {
     // 1. Register a new Student

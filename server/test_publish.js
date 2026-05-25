@@ -6,7 +6,7 @@ const User = require('./src/models/User');
 async function test() {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
-    const faculty = await User.findOne({ email: 'faculty@quzify.com' });
+    const faculty = await User.findOne({ email: 'faculty@quizify.com' });
     const exam = await Exam.findOne({ _id: '69c4e4e5a65de8e06c4d66a3', institution: faculty.institution });
     
     if (!exam) throw new Error('Exam not found');

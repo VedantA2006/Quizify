@@ -8,14 +8,14 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const loadUser = useCallback(async () => {
-    const token = localStorage.getItem('quzify_token');
+    const token = localStorage.getItem('quizify_token');
     if (!token) { setLoading(false); return; }
     try {
       const res = await authAPI.getMe();
       setUser(res.data.user);
     } catch {
-      localStorage.removeItem('quzify_token');
-      localStorage.removeItem('quzify_user');
+      localStorage.removeItem('quizify_token');
+      localStorage.removeItem('quizify_user');
     } finally {
       setLoading(false);
     }
@@ -25,29 +25,29 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const res = await authAPI.login({ email, password });
-    localStorage.setItem('quzify_token', res.data.token);
-    localStorage.setItem('quzify_user', JSON.stringify(res.data.user));
+    localStorage.setItem('quizify_token', res.data.token);
+    localStorage.setItem('quizify_user', JSON.stringify(res.data.user));
     setUser(res.data.user);
     return res.data.user;
   };
 
   const register = async (data) => {
     const res = await authAPI.register(data);
-    localStorage.setItem('quzify_token', res.data.token);
-    localStorage.setItem('quzify_user', JSON.stringify(res.data.user));
+    localStorage.setItem('quizify_token', res.data.token);
+    localStorage.setItem('quizify_user', JSON.stringify(res.data.user));
     setUser(res.data.user);
     return res.data.user;
   };
 
   const logout = () => {
-    localStorage.removeItem('quzify_token');
-    localStorage.removeItem('quzify_user');
+    localStorage.removeItem('quizify_token');
+    localStorage.removeItem('quizify_user');
     setUser(null);
   };
 
   const updateUser = (userData) => {
     setUser(prev => ({ ...prev, ...userData }));
-    localStorage.setItem('quzify_user', JSON.stringify({ ...user, ...userData }));
+    localStorage.setItem('quizify_user', JSON.stringify({ ...user, ...userData }));
   };
 
   return (

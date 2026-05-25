@@ -36,7 +36,7 @@ export default function Register() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center">
               <Brain className="w-6 h-6 text-white" />
             </div>
-            <span className="font-display font-bold text-2xl text-white">Quzify</span>
+            <span className="font-display font-bold text-2xl text-white">Quizify</span>
           </Link>
           <h1 className="text-2xl font-display font-bold text-white mb-2">Create your account</h1>
           <p className="text-surface-400">Free forever. No credit card required.</p>

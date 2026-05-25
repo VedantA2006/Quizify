@@ -1,7 +1,7 @@
 {
-  "name": "quzify-server",
+  "name": "quizify-server",
   "version": "1.0.0",
-  "description": "Quzify API Server",
+  "description": "Quizify API Server",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
